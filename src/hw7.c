@@ -8,10 +8,15 @@ int precedence(char c) {
         default: return -1;
     }
 }
+inline void push(char* op_stack, int* top, char c) {
+    op_stack[++(*top)] = c;
+}
+inline char pop(char* op_stack, int* top) {
+    return op_stack[(*top)--];
+}
 // END My Helper Functions
 
 bst_sf* insert_bst_sf(matrix_sf *mat, bst_sf *root) {
-    if (mat->values[0] == NULL) 
     return NULL;
 }
 
@@ -20,7 +25,9 @@ matrix_sf* find_bst_sf(char name, bst_sf *root) {
 }
 
 void free_bst_sf(bst_sf *root) {
-    free((void *)root);
+    free(root->mat);
+    free(root->left_child);
+    free(root->right_child);
 }
 
 matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
@@ -44,10 +51,49 @@ char* infix2postfix_sf(char *infix) {
     if (len > MAX_LINE_LEN) return NULL;
 
     char* result = malloc(len + 1);
+    int pos = 0;
     char op_stack[len];
+    int top = -1;
+    const char* infix_ro = infix; // forces read only
 
-    int postfix_buffer[MAX_LINE_LEN] = NULL;
-    char* firstChar = infix;
+    while (*infix_ro != '\0') {
+        char c = *infix_ro;
+
+        if (c == ' ' || c == '\n') {
+            infix_ro++;
+            continue;
+        }
+
+        // If the character is an operand or the transpose operator, append it to the result
+        if ((c >= 'A' && c <= 'Z') || c == '\'') result[pos++] = c;
+        // If the character is '(' push it to the stack
+        else if (c == '(') push(op_stack, &top, c);
+        else if(c == ')') {
+            // dump the stack onto result
+            while (top != -1 && op_stack[top] != '(') {
+                result[pos++] = pop(op_stack, &top);
+            }
+            
+            // pop the opening parenthesis
+            (void)pop(op_stack, &top);
+        }
+        else { // This is an operator which is not '(' or ')'
+            while (top != -1 && op_stack[top] != '(' && (precedence(op_stack[top]) > precedence(c) || (precedence(op_stack[top]) == precedence(c)))) {
+                result[pos++] = pop(op_stack, &top);
+            }
+            push(op_stack, &top, c);
+        }
+
+        infix_ro++;
+    }
+
+    // Pop any remaining operators
+    while (top != -1) {
+        result[pos++] = pop(op_stack, &top);
+    }
+
+    result[pos] = '\0';
+    return result;
 }
 
 matrix_sf* evaluate_expr_sf(char name, char *expr, bst_sf *root) {

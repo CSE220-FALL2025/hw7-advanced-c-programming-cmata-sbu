@@ -23,9 +23,10 @@ typedef struct bst_sf {
     struct bst_sf *right_child;
 } bst_sf;
 
-// Student Helper Functions
+// Student Helper Function Declarations
 int precedence(char c);
-void push(char* )
+void push(char* op_stack, int* top, char c);
+char pop(char* op_stack, int* top); 
 // *END* Student Helper Functions
 
 /**
