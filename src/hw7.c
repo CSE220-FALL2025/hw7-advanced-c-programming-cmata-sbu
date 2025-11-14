@@ -1,6 +1,17 @@
 #include "hw7.h"
 
+// My Helper Functions
+int precedence(char c) {
+    switch(c) {
+        case '+': return 1;
+        case '*':  return 2;
+        default: return -1;
+    }
+}
+// END My Helper Functions
+
 bst_sf* insert_bst_sf(matrix_sf *mat, bst_sf *root) {
+    if (mat->values[0] == NULL) 
     return NULL;
 }
 
@@ -9,6 +20,7 @@ matrix_sf* find_bst_sf(char name, bst_sf *root) {
 }
 
 void free_bst_sf(bst_sf *root) {
+    free((void *)root);
 }
 
 matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
@@ -28,7 +40,14 @@ matrix_sf* create_matrix_sf(char name, const char *expr) {
 }
 
 char* infix2postfix_sf(char *infix) {
-    return NULL;
+    int len = strlen(infix);
+    if (len > MAX_LINE_LEN) return NULL;
+
+    char* result = malloc(len + 1);
+    char op_stack[len];
+
+    int postfix_buffer[MAX_LINE_LEN] = NULL;
+    char* firstChar = infix;
 }
 
 matrix_sf* evaluate_expr_sf(char name, char *expr, bst_sf *root) {
