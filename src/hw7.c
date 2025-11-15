@@ -23,17 +23,38 @@ inline matrix_sf* pop_mp(matrix_sf** mat_stack, int* top) {
 // END My Helper Functions
 
 bst_sf* insert_bst_sf(matrix_sf *mat, bst_sf *root) {
-    return NULL;
+    if (root == NULL) {
+        bst_sf* node = malloc(sizeof *node);
+        node->mat = mat;
+        node->left_child = NULL;
+        node->right_child = NULL;
+        
+        return node;
+    } else if(mat->name < root->mat->name) {
+        root->left_child = insert_bst_sf(mat, root->left_child);
+    } else {
+        root->right_child = insert_bst_sf(mat, root->right_child);
+    }
+
+    return root;
 }
 
 matrix_sf* find_bst_sf(char name, bst_sf *root) {
-    return NULL;
+    while(root != NULL) {
+        if (name == root->mat->name) return root->mat;
+        else if (name < root->mat->name) root = root->left_child;
+        else root = root->right_child;
+    }
+
+    return root;
 }
 
 void free_bst_sf(bst_sf *root) {
+    if (root == NULL) return;
+    if(root->left_child != NULL) free_bst_sf(root->left_child);
+    if(root->right_child != NULL) free_bst_sf(root->right_child);
     free(root->mat);
-    free(root->left_child);
-    free(root->right_child);
+    free(root);
 }
 
 matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
