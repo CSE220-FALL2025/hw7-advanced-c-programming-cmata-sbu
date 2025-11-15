@@ -46,7 +46,7 @@ matrix_sf* find_bst_sf(char name, bst_sf *root) {
         else root = root->right_child;
     }
 
-    return root->mat;
+    return NULL;
 }
 
 void free_bst_sf(bst_sf *root) {
@@ -142,7 +142,7 @@ matrix_sf* create_matrix_sf(char name, const char *expr) {
     if (*p == '[') p++;
 
     for (int i = 0; i < rows; i++) {
-        for(int j = 0; i < cols; j++) {
+        for(int j = 0; j < cols; j++) {
             while (*p == '\t' || *p == ' ') p++;
             int val = (int)strtol(p, &p, 10);
 
@@ -267,7 +267,53 @@ matrix_sf* evaluate_expr_sf(char name, char *expr, bst_sf *root) {
 }
 
 matrix_sf *execute_script_sf(char *filename) {
-   return NULL;
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) return NULL;
+
+    char line[MAX_LINE_LEN + 2];
+    bst_sf *root = NULL;
+    char name;
+    char last_name = '\0';
+
+    while(1) {
+        char* p = fgets(line, sizeof line, file);
+        if (p == NULL) break;
+
+        while (*p == '\t' || *p == ' ') p++;
+        if (*p == '\0') continue;
+
+        if (isalpha((unsigned char) *p) && isupper((unsigned char) *p)) {
+            name = *p;
+            last_name = *p;
+            p++;
+        } else continue;
+
+        while (*p == '\t' || *p == ' ') p++;
+        if (*p == '=') p++;
+        while (*p == '\t' || *p == ' ') p++;
+
+        matrix_sf* M;
+        if ((*p >= '0' && *p <= '9') || *p == '+' || *p == '-') {
+            M = create_matrix_sf(name, p);
+        }
+        else if(isupper((unsigned char) *p) || *p == '(') {
+            M = evaluate_expr_sf(name, p, root);
+        } 
+        else return NULL;
+
+        if (M != NULL) {
+            root = insert_bst_sf(M, root);
+        }
+    }
+
+    fclose(file);
+
+    matrix_sf* result = NULL;
+    if (last_name != '\0') {
+        result = find_bst_sf(last_name, root);
+    }
+
+    return result;
 }
 
 // This is a utility function used during testing. Feel free to adapt the code to implement some of
