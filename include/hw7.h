@@ -23,6 +23,13 @@ typedef struct bst_sf {
     struct bst_sf *right_child;
 } bst_sf;
 
+// Student Defined Helper Functions
+void push_cp(char* op_stack, int* top, char c);
+char pop_cp(char* op_stack, int* top);
+void push_mp(matrix_sf** mat_stack, int* top, matrix_sf* mat);
+matrix_sf* pop_mp(matrix_sf** mat_stack, int* top);
+// END Student Defined Helper Functions
+
 /**
  * @brief Given a pointer to the bst_sf struct root, which could be NULL, insert the provided matrix mat into the BST without making a copy of mat. The function must ensure that the sorted property of the BST is maintained. The function creates a new BST if the root is NULL.
  * @return a pointer to the root of the updated (or new) BST. 

@@ -1,42 +1,320 @@
 #include "hw7.h"
 
+// My Helper Functions
+int precedence(char c) {
+    switch(c) {
+        case '+': return 1;
+        case '*':  return 2;
+        default: return -1;
+    }
+}
+inline void push_cp(char* op_stack, int* top, char c) {
+    op_stack[++(*top)] = c;
+}
+inline char pop_cp(char* op_stack, int* top) {
+    return op_stack[(*top)--];
+}
+inline void push_mp(matrix_sf** mat_stack, int* top, matrix_sf* mat) {
+    mat_stack[++(*top)] = mat;
+}
+inline matrix_sf* pop_mp(matrix_sf** mat_stack, int* top) {
+    return mat_stack[(*top)--];
+}
+// END My Helper Functions
+
 bst_sf* insert_bst_sf(matrix_sf *mat, bst_sf *root) {
-    return NULL;
+    if (root == NULL) {
+        bst_sf* node = malloc(sizeof *node);
+        node->mat = mat;
+        node->left_child = NULL;
+        node->right_child = NULL;
+        
+        return node;
+    } else if(mat->name < root->mat->name) {
+        root->left_child = insert_bst_sf(mat, root->left_child);
+    } else {
+        root->right_child = insert_bst_sf(mat, root->right_child);
+    }
+
+    return root;
 }
 
 matrix_sf* find_bst_sf(char name, bst_sf *root) {
+    while(root != NULL) {
+        if (name == root->mat->name) return root->mat;
+        else if (name < root->mat->name) root = root->left_child;
+        else root = root->right_child;
+    }
+
     return NULL;
 }
 
 void free_bst_sf(bst_sf *root) {
+    if (root == NULL) return;
+    if(root->left_child != NULL) free_bst_sf(root->left_child);
+    if(root->right_child != NULL) free_bst_sf(root->right_child);
+    free(root->mat);
+    free(root);
 }
 
 matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
-    return NULL;
+    unsigned int rows = mat1->num_rows;
+    unsigned int cols = mat1->num_cols;
+
+    matrix_sf* result = malloc(sizeof(matrix_sf) + rows * cols * sizeof(int));
+    result->name = '@';
+    result->num_rows = rows;
+    result->num_cols = cols;
+
+    unsigned n = rows * cols;
+    for (unsigned  i = 0; i < n; i++) {
+        result->values[i] = mat1->values[i] + mat2->values[i];
+    }
+
+    return result;
 }
 
 matrix_sf* mult_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
-   return NULL;
+    int r1 = mat1->num_rows;
+    int c1 = mat1->num_cols;
+    int r2 = mat2->num_rows;
+    int c2 = mat2->num_cols;
+    if (c1 != r2) return NULL;
+
+    matrix_sf* result = malloc(sizeof(matrix_sf) + r1 * c2 * sizeof(int));
+    result->name = '@';
+    result->num_rows = r1;
+    result->num_cols = c2;
+
+    for(int i = 0; i < r1; i++) {
+        for(int j = 0; j < c2; j++) {
+            int sum = 0;
+
+            for(int k = 0; k < c1; k++) {
+                int idx1 = i * c1 + k;
+                int idx2 = k * c2 + j;
+                sum += mat1->values[idx1] * mat2->values[idx2];
+            }
+
+            int idx = i * c2 + j;
+            result->values[idx] = sum;
+        }
+    }
+
+    return result;
 }
 
 matrix_sf* transpose_mat_sf(const matrix_sf *mat) {
-    return NULL;
+    int rows = mat->num_rows;
+    int cols = mat->num_cols;
+
+    matrix_sf* result = malloc(sizeof(matrix_sf) + rows * cols * sizeof(int));
+    result->name = '@';
+    result->num_rows = cols;
+    result->num_cols = rows;
+
+    for(int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            int orig_idx = i * cols + j;
+            int trans_idx = j * rows + i;
+            result->values[trans_idx] = mat->values[orig_idx];
+        }
+    }
+
+    return result;
 }
 
 matrix_sf* create_matrix_sf(char name, const char *expr) {
-    return NULL;
+    char* p = expr;
+
+    while (*p == '\t' || *p == ' ') p++;
+    int rows = (int)strtol(p, &p, 10);
+
+    while (*p == '\t' || *p == ' ') p++;
+    int cols = (int)strtol(p, &p, 10);
+
+    matrix_sf* M = malloc(sizeof(matrix_sf) + rows * cols * sizeof(int));
+    if (M == NULL) return NULL;
+    M->name = name;
+    M->num_rows = rows;
+    M->num_cols = cols;
+
+    while (*p == '\t' || *p == ' ') p++;
+    if (*p == '[') p++;
+
+    for (int i = 0; i < rows; i++) {
+        for(int j = 0; j < cols; j++) {
+            while (*p == '\t' || *p == ' ') p++;
+            int val = (int)strtol(p, &p, 10);
+
+            int idx = i * cols + j;
+            M->values[idx] = val;
+        }
+        while (*p == '\t' || *p == ' ') p++;
+        if(*p == ';') p++;
+    }
+
+    while (*p == '\t' || *p == ' ') p++;
+    if (*p == ']') p++;
+
+    return M;
 }
 
 char* infix2postfix_sf(char *infix) {
-    return NULL;
+    int len = strlen(infix);
+    if (len > MAX_LINE_LEN) return NULL;
+
+    char* result = malloc(len + 1);
+    int pos = 0;
+    char op_stack[len];
+    int top = -1;
+    const char* infix_ro = infix; // forces read only
+
+    while (*infix_ro != '\0') {
+        char c = *infix_ro;
+
+        if (c == ' ' || c == '\n') {
+            infix_ro++;
+            continue;
+        }
+
+        // If the character is an operand or the transpose operator, append it to the result
+        if ((c >= 'A' && c <= 'Z') || c == '\'') result[pos++] = c;
+        // If the character is '(' push_cp it to the stack
+        else if (c == '(') push_cp(op_stack, &top, c);
+        else if(c == ')') {
+            // dump the stack onto result
+            while (top != -1 && op_stack[top] != '(') {
+                result[pos++] = pop_cp(op_stack, &top);
+            }
+            
+            // pop_cp_cp the opening parenthesis
+            (void)pop_cp(op_stack, &top);
+        }
+        else { // This is an operator which is not '(' or ')'
+            while (top != -1 && op_stack[top] != '(' && (precedence(op_stack[top]) > precedence(c) || (precedence(op_stack[top]) == precedence(c)))) {
+                result[pos++] = pop_cp(op_stack, &top);
+            }
+            push_cp(op_stack, &top, c);
+        }
+
+        infix_ro++;
+    }
+
+    // pop_cp any remaining operators
+    while (top != -1) {
+        result[pos++] = pop_cp(op_stack, &top);
+    }
+
+    result[pos] = '\0';
+    return result;
 }
 
 matrix_sf* evaluate_expr_sf(char name, char *expr, bst_sf *root) {
-    return NULL;
+    char* postfix_expr = infix2postfix_sf(expr);
+    if (postfix_expr == NULL) return NULL;
+
+    char* postfix_expr_ro = postfix_expr;
+    matrix_sf* matrix_stack[strlen(postfix_expr_ro)];
+    int top = -1;
+
+    while(*postfix_expr_ro != '\0') {
+        char c = *postfix_expr_ro;
+
+        if (c >= 'A' && c <= 'Z') {
+            matrix_sf* M = find_bst_sf(c, root);
+            push_mp(matrix_stack, &top, M);
+        }
+        else if(c == '\'') {
+            matrix_sf *M = pop_mp(matrix_stack, &top);
+            matrix_sf* T = transpose_mat_sf(M);
+
+            T->name = '@';
+            push_mp(matrix_stack, &top, T);
+
+            if (M->name == '@') free(M);
+        }
+        else if(c == '+') {
+            matrix_sf* right = pop_mp(matrix_stack, &top);
+            matrix_sf* left = pop_mp(matrix_stack, &top);
+            
+            matrix_sf* M = add_mats_sf(left, right);
+            M->name = '@';
+            push_mp(matrix_stack, &top, M);
+
+            if (right->name == '@') free(right);
+            if (left->name == '@') free(left);
+        }
+        else if(c == '*') {
+            matrix_sf* right = pop_mp(matrix_stack, &top);
+            matrix_sf* left = pop_mp(matrix_stack, &top);
+
+            matrix_sf* M = mult_mats_sf(left, right);
+            M->name = '@';
+            push_mp(matrix_stack, &top, M);
+
+            if (right->name == '@') free(right);
+            if (left->name == '@') free(left);
+        }
+
+        postfix_expr_ro++;
+    }
+
+    matrix_sf* final = pop_mp(matrix_stack, &top);
+    final->name = name;
+
+    free(postfix_expr);
+    return final;
 }
 
 matrix_sf *execute_script_sf(char *filename) {
-   return NULL;
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) return NULL;
+
+    char line[MAX_LINE_LEN + 2];
+    bst_sf *root = NULL;
+    char name;
+    char last_name = '\0';
+
+    while(1) {
+        char* p = fgets(line, sizeof line, file);
+        if (p == NULL) break;
+
+        while (*p == '\t' || *p == ' ') p++;
+        if (*p == '\0') continue;
+
+        if (isalpha((unsigned char) *p) && isupper((unsigned char) *p)) {
+            name = *p;
+            last_name = *p;
+            p++;
+        } else continue;
+
+        while (*p == '\t' || *p == ' ') p++;
+        if (*p == '=') p++;
+        while (*p == '\t' || *p == ' ') p++;
+
+        matrix_sf* M;
+        if (isdigit((unsigned char) *p)) {
+            M = create_matrix_sf(name, p);
+        }
+        else if(isupper((unsigned char) *p) || *p == '(') {
+            M = evaluate_expr_sf(name, p, root);
+        } 
+        else return NULL;
+
+        if (M != NULL) {
+            root = insert_bst_sf(M, root);
+        }
+    }
+
+    fclose(file);
+
+    matrix_sf* result = NULL;
+    if (last_name != '\0') {
+        result = find_bst_sf(last_name, root);
+    }
+
+    return result;
 }
 
 // This is a utility function used during testing. Feel free to adapt the code to implement some of
