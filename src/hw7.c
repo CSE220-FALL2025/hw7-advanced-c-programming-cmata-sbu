@@ -66,7 +66,8 @@ matrix_sf* add_mats_sf(const matrix_sf *mat1, const matrix_sf *mat2) {
     result->num_rows = rows;
     result->num_cols = cols;
 
-    for (unsigned  i = 0; i < rows*cols; i++) {
+    unsigned n = rows * cols;
+    for (unsigned  i = 0; i < n; i++) {
         result->values[i] = mat1->values[i] + mat2->values[i];
     }
 
@@ -293,7 +294,7 @@ matrix_sf *execute_script_sf(char *filename) {
         while (*p == '\t' || *p == ' ') p++;
 
         matrix_sf* M;
-        if ((*p >= '0' && *p <= '9') || *p == '+' || *p == '-') {
+        if (isdigit((unsigned char) *p)) {
             M = create_matrix_sf(name, p);
         }
         else if(isupper((unsigned char) *p) || *p == '(') {
